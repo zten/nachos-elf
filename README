@@ -1,0 +1,82 @@
+This is Nachos 5.0j with ELF32 binary support. I added ELF32 binary support after the conclusion of my Operating Systems course, CS377, at the University of Masssachusetts Amherst.
+
+This permits you to use more modern compilers when compiling binaries to work with the nachos VM. Previously, you had to rely on a very old, aging build of gcc... one that no longer works on modern Mac OS X since the builds were PPC binaries.
+
+New files (written by me):
+Elf.java -> nachos.machine
+ElfProgram.java -> nachos.machine
+ElfSection.java -> nachos.machine
+
+Changed files (minor amounts of code written by me):
+Machine.java -> nachos.machine
+    I made a change to this because the code I wrote relied on having the ability to use reflection. Reflection is used
+    by ElfProgram and ElfSection since they use EnumSets to describe various ELF attributes and flags. It works by
+    passing the privilege object for the Nachos security manager and using it to execute two calls to the method
+    EnumSet.noneOf, which uses reflection to determine what items are in an enumeration. Reflection is banned by 
+    the Nachos security manager by default.
+UserProcess.java -> nachos.userprog
+    COFF executable support is stripped from this and modified to fit the requirements for loading ELF binaries. It should
+    look really similar to the COFF code... because a lot of it is.
+test/ directory -> overwrite the existing test/ directory in the nachos distribution
+    I made a very small change to sh.c to open .elf extension files instead of .coff extension files.
+    va-mips.h was changed because sgidefs.h will erroneously be included, the package doesn't contain it,
+        and it's not necessary.
+    Makefile is changed to generate correct output with binutils-2.21, gcc-4.5.2 and beyond, and to output binaries
+        with .elf extensions.
+    script is changed to generate the correct format binary, and align all sections on nachos page size boundaries.
+
+Other errata:
+- The AutoGrader apparently has support for changing the COFF binary loader. I have no idea in what circumstances that is used,
+and I think my autograder code is incomplete so I didn't change that aspect of it. It might be sufficient to just make it return an Elf type
+instead of a Coff type.
+
+Cross-compiler building
+==================
+
+We need to make binutils and gcc for this to work. Both should go pretty smoothly.
+
+I have tested this on Ubuntu Linux 10.04 with a proper compiler (usually installed by default) and Mac OS X 10.6.7 with gcc installed via Xcode 3.2.5.
+
+There are a few updated minor versions of the packages I list below, and a major gcc update (4.6), but I haven't tested using those newer versions. Feel free to try; it'll probably work.
+
+I made a directory, crosscompile, and downloaded the following packages and placed the archives in the crosscompile directory:
+1. binutils-2.21 -- http://ftp.gnu.org/pub/gnu/binutils/binutils-2.21.tar.gz
+2. gcc 4.5.2 -- http://ftp.gnu.org/pub/gnu/gcc/gcc-4.5.2/gcc-core-4.5.2.tar.gz (we're only building C language support)
+and the following REQUIRED gcc dependencies:
+3. gmp-5.0.1 -- http://ftp.gnu.org/pub/gnu/gmp/gmp-5.0.1.tar.gz
+4. mpc-0.9 -- http://www.multiprecision.org/mpc/download/mpc-0.9.tar.gz
+5. mpfr-3.0.0 -- http://ftp.gnu.org/pub/gnu/mpfr/mpfr-3.0.0.tar.gz
+
+Assuming we're in your crosscompile build directory, extract all of the packages and place stuff in the correct directories (replace with proper versions if you change them):
+tar -zxf binutils-2.21.tar.gz
+tar -zxf gcc-core-4.5.2.tar.gz
+tar -zxf gmp-5.0.1.tar.gz
+tar -zxf mpc-0.9.tar.gz
+tar -zxf mpfr-3.0.0.tar.gz
+mv gmp-5.0.1 gcc-4.5.2/gmp
+mv mpc-0.9 gcc-4.5.2/mpc
+mv mpfr-3.0.0 gcc-4.5.2/mpfr
+
+Building binutils:
+mkdir binutils-build
+cd binutils-build
+../binutils-2.21/configure --prefix=/usr/local/mips-gcc --target=mips-generic-linux
+# NOTE: Change the --prefix if you want to install binutils somewhere else.
+make
+sudo make install
+# NOTE: Use sudo if you're not installing it to your home directory and are installing to /usr/local/mips-gcc
+
+Building gcc:
+Go back to your crosscompile directory. If you're in binutils-build still, just type cd ..
+mkdir gcc-build
+cd gcc-build
+../gcc-4.5.2/configure --prefix=/usr/local/mips-gcc --program-prefix=mips- --target=mips-generic-linux --disable-threads --disable-shared --disable-multilib --with-endian=little,big --disable-libmudflap --enable-languages=c --disable-libgomp --disable-libssp
+# The build will fail at some point without that insane number of options. Change --prefix setting if you want to install somewhere else.
+# NOTE: I think there's actually one more option that needs to be disabled, and I don't remember what it is... if you actually try building gcc with those settings, you should discover what is flawed and might need to be disabled.
+# Also, install to the same directory as binutils, or you'll need to put your new binutils install somewhere in your PATH.
+make
+sudo make install
+# Same deal, sudo only if you're not installing in your home directory and placing it in a place like /usr/local/mips-gcc
+
+Now you should have a working cross-compiler in /usr/local/mips-gcc, or wherever you've specified. The Makefile edits I made in the nachos test/ directory assume that you're using /usr/local/mips-gcc as the installation directory.
+

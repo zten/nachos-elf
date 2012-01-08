@@ -1,0 +1,17 @@
+OUTPUT_FORMAT("elf32-tradlittlemips")
+SEARCH_DIR(.)
+ENTRY(__start)
+
+SECTIONS {
+  .text             0               : { *(.text) }
+  .reginfo          ALIGN(0x400)    : { *(.reginfo) }
+  .rodata           ALIGN(0x400)    : { *(.rodata) }
+  .rodata.str1.4    ALIGN(0x400)    : { *(.rodata.str1.4) }
+  .data             ALIGN(0x400)    : { *(.data) }
+  .sbss             ALIGN(0x400)    : { *(.sbss) }
+  .bss              ALIGN(0x400)    : { *(.bss) }
+  .pdr              ALIGN(0x400)    : { *(.pdr) }
+  .comment          ALIGN(0x400)    : { *(.comment) }
+  .gnu.attributes   ALIGN(0x400)    : { *(.gnu.attributes) }
+}
+
